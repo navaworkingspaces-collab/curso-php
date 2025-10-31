@@ -1,14 +1,26 @@
 <?php
 session_start();
 require '../includes/db.php';
-if (!isset($_SESSION['user_id'])) { header("Location: ../login.php"); exit; }
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+
+$modulo = 14;
+$user_id = $_SESSION['user_id'];
+$mensaje = '';
+
+// Obtener 5 preguntas aleatorias del módulo
+$stmt = $pdo->prepare("SELECT * FROM preguntas WHERE modulo = ? ORDER BY RAND() LIMIT 5");
+$stmt->execute([$modulo]);
+$preguntas = $stmt->fetchAll();
 
 if (!isset($_SESSION['carrito'])) {
     $_SESSION['carrito'] = [];
 }
 
 // === AGREGAR AL CARRITO ===
-$mensaje = '';
 if ($_POST['action'] ?? '' === 'agregar') {
     $producto_id = intval($_POST['producto_id'] ?? 0);
     $cantidad = intval($_POST['cantidad'] ?? 1);
@@ -85,43 +97,32 @@ if (isset($_POST['code'])) {
     exit;
 }
 
-$modulo = 14;
-$user_id = $_SESSION['user_id'];
-$titulo_modulo = "Módulo 14: Carrito I – Agregar Productos";
-$instrucciones = "Agrega productos al carrito desde la BD.";
+// Procesar respuestas
+if ($_POST && isset($_POST['respuesta'])) {
+    $correctas = 0;
+    foreach ($_POST['respuesta'] as $pregunta_id => $respuesta_idx) {
+        $stmt = $pdo->prepare("SELECT respuesta_correcta FROM preguntas WHERE id = ?");
+        $stmt->execute([$pregunta_id]);
+        if ($stmt->fetchColumn() == $respuesta_idx) {
+            $correctas++;
+        }
+    }
 
-// Progreso
+    if ($correctas >= 3) {
+        // Guardar progreso en tabla progreso (sistema unificado)
+        $stmt = $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?");
+        $stmt->execute([$user_id, $modulo, $correctas * 20, $correctas * 20]);
+        $mensaje = "<div class='alert alert-success'>¡Módulo completado! $correctas/5 correctas ✓</div>";
+    } else {
+        $mensaje = "<div class='alert alert-danger'>Necesitas al menos 3 correctas. Tienes $correctas/5</div>";
+    }
+}
+
+// Verificar progreso
 $completado = false;
 $stmt = $pdo->prepare("SELECT completado FROM progreso WHERE user_id = ? AND modulo = ?");
 $stmt->execute([$user_id, $modulo]);
 if ($row = $stmt->fetch()) $completado = $row['completado'];
-
-// Preguntas
-$preguntas = [
-    ["¿Cómo agregas al carrito?", '["$_SESSION[\'carrito\'][] = $producto", "INSERT INTO", "file_put_contents", "echo"]', 0],
-    ["¿Qué guarda el carrito?", '["Array de productos", "Solo nombre", "Solo precio", "JSON"]', 0],
-    ["¿Cómo evitas duplicados?", '["Buscas por id", "Por nombre", "Por precio", "No se evita"]', 0],
-    ["¿Se guarda en BD?", '["No, solo sesión", "Sí", "Solo al pagar", "Con cookie"]', 0],
-    ["¿Qué hace isset()?", '["Verifica si existe", "Crea variable", "Borra", "Imprime"]', 0]
-];
-
-// Procesar respuestas
-if ($_POST['action'] ?? '' === 'verificar') {
-    $respuestas = $_POST['respuesta'] ?? [];
-    $correctas = 0;
-    foreach ($preguntas as $i => $p) {
-        if (($respuestas[$i] ?? -1) == $p[2]) $correctas++;
-    }
-    if ($correctas == 5) {
-        $mensaje = "<div class='alert alert-success'>¡Módulo completado!</div>";
-        if (!$completado) {
-            $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, 100) ON DUPLICATE KEY UPDATE completado = 1")->execute([$user_id, $modulo]);
-            $completado = true;
-        }
-    } else {
-        $mensaje = "<div class='alert alert-danger'>$correctas/5 correctas.</div>";
-    }
-}
 
 // === OBTENER PRODUCTOS CON SEGURIDAD ===
 $productos = [];
@@ -141,7 +142,7 @@ $codigo_inicial = "<?php\n// Mostrar productos disponibles (ejemplo estático)\n
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= $titulo_modulo ?></title>
+    <title>Módulo 14: Carrito I – Agregar Productos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" rel="stylesheet">
     <style>
@@ -155,12 +156,15 @@ $codigo_inicial = "<?php\n// Mostrar productos disponibles (ejemplo estático)\n
             <h2>Módulo 14: Carrito I – Agregar Productos</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
+
+        <?php if ($mensaje && strpos($mensaje, 'Módulo completado') === false) echo $mensaje; ?>
+
         <div class="row">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header"><h5><?= $titulo_modulo ?></h5></div>
+                    <div class="card-header"><h5>Módulo 14: Carrito I – Agregar Productos</h5></div>
                     <div class="card-body">
-                        <p><strong>Instrucciones:</strong> <?= $instrucciones ?></p>
+                        <p><strong>Instrucciones:</strong> Agrega productos al carrito desde la BD.</p>
                         <textarea id="code" class="editor"><?= htmlspecialchars($codigo_inicial) ?></textarea>
                         <button id="run" class="btn btn-success mt-2">Ejecutar</button>
                         <div id="output" class="output mt-3"></div>
@@ -171,7 +175,7 @@ $codigo_inicial = "<?php\n// Mostrar productos disponibles (ejemplo estático)\n
                 <div class="card mt-4">
                     <div class="card-header">Agregar al Carrito</div>
                     <div class="card-body">
-                        <?= $mensaje ?>
+                        <?php if ($mensaje && strpos($mensaje, 'Producto agregado') !== false) echo $mensaje; ?>
                         <form method="post">
                             <input type="hidden" name="action" value="agregar">
                             <div class="row">
@@ -218,23 +222,28 @@ $codigo_inicial = "<?php\n// Mostrar productos disponibles (ejemplo estático)\n
 
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header"><h6>Evaluación</h6></div>
+                    <div class="card-header"><h6>Evaluación (5 preguntas aleatorias)</h6></div>
                     <div class="card-body">
+                        <?php if ($mensaje && (strpos($mensaje, 'Módulo completado') !== false || strpos($mensaje, 'Necesitas al menos') !== false)) echo $mensaje; ?>
+                        <?php if (!empty($preguntas)): ?>
                         <form method="post">
-                            <input type="hidden" name="action" value="verificar">
                             <?php foreach ($preguntas as $i => $p): ?>
-                                <div class="mb-3">
-                                    <p class="fw-bold small"><?= $i+1 ?>. <?= $p[0] ?></p>
-                                    <?php $opciones = json_decode($p[1], true); foreach ($opciones as $j => $opcion): ?>
+                                <div class="mb-4 p-3 border rounded">
+                                    <p class="mb-2"><strong><?= $i+1 ?>.</strong> <?= nl2br(htmlspecialchars($p['pregunta'])) ?></p>
+                                    <?php $opciones = json_decode($p['opciones']); ?>
+                                    <?php foreach ($opciones as $j => $opcion): ?>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="respuesta[<?= $i ?>]" value="<?= $j ?>" required>
-                                            <label class="form-check-label small"><?= htmlspecialchars($opcion) ?></label>
+                                            <input class="form-check-input" type="radio" name="respuesta[<?= $p['id'] ?>]" value="<?= $j ?>" required>
+                                            <label class="form-check-label"><?= htmlspecialchars($opcion) ?></label>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endforeach; ?>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Enviar</button>
+                            <button type="submit" class="btn btn-primary w-100">Enviar Respuestas</button>
                         </form>
+                        <?php else: ?>
+                            <div class="alert alert-warning">No hay preguntas disponibles para este módulo.</div>
+                        <?php endif; ?>
                         <?php if ($completado): ?>
                             <div class="alert alert-success mt-3 text-center">Completado</div>
                         <?php endif; ?>

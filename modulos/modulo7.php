@@ -42,7 +42,7 @@ if ($_POST) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Módulo 7: Formularios</title>
+    <title>Módulo 7: Funciones</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/codemirror/lib/codemirror.css" rel="stylesheet">
     <link href="../assets/codemirror/theme/monokai.css" rel="stylesheet">
@@ -51,7 +51,7 @@ if ($_POST) {
 <body>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Módulo 7: Formularios</h2>
+            <h2>Módulo 7: Funciones</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
 
@@ -66,8 +66,100 @@ if ($_POST) {
                     </div>
                     <div class="card-body p-0">
                         <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
+// VARIABLES GLOBALES
+$global="Soy global";
+
+// FUNCIÓN CON VARIABLE LOCAL
+function pruebaLocal(){
+    $local="Soy local";
+    echo "Dentro: $local\n";
+    return $local;
+}
+
+// FUNCIÓN CON VARIABLE GLOBAL
+function pruebaGlobal(){
+    global $global;
+    echo "Global: $global\n";
+    $global="Modificada";
+}
+
+// FUNCIÓN CON PARÁMETROS
+function sumar($a,$b){
+    return $a+$b;
+}
+
+// FUNCIÓN CON PARÁMETRO POR REFERENCIA
+function incrementar(&$numero){
+    $numero++;
+    echo "Incrementado: $numero\n";
+}
+
+// FUNCIÓN CON VALOR POR DEFECTO
+function saludar($nombre="Invitado"){
+    return "Hola $nombre";
+}
+
+// FUNCIÓN QUE RETORNA VALOR
+function crearContador(){
+    static $contador=0;
+    $contador++;
+    return $contador;
+}
+
+// FUNCIÓN RECURSIVA
+function factorial($n){
+    if($n<=1)return 1;
+    return $n*factorial($n-1);
+}
+
+// FUNCIÓN ANÓNIMA
+$duplicar=function($x){return $x*2;};
+
+// ARROW FUNCTION (PHP 7.4+)
+$triplicar=fn($x)=>$x*3;
+
+// FUNCIÓN CON STATIC
+function recordar(){
+    static $llamadas=0;
+    $llamadas++;
+    echo "Llamada: $llamadas\n";
+}
+
+// EJECUCIÓN
+pruebaLocal();
+pruebaGlobal();
+echo "Suma: ".sumar(5,3)."\n";
+
+$valor=10;
+incrementar($valor);
+echo "Valor final: $valor\n";
+
+echo saludar()."\n";
+echo saludar("Maria")."\n";
+
+echo "Contador: ".crearContador()."\n";
+echo "Contador: ".crearContador()."\n";
+echo "Contador: ".crearContador()."\n";
+
+echo "Factorial: ".factorial(5)."\n";
+echo "Duplicar: ".$duplicar(5)."\n";
+echo "Triplicar: ".$triplicar(5)."\n";
+
+recordar();
+recordar();
+recordar();
+
+// ALCANCE EN BUCLES
+function alcanceBucle(){
+    for($i=0;$i<3;$i++){
+        $interno=$i*2;
+        echo "Bucle: $interno\n";
+    }
+}
+
+alcanceBucle();
+
+echo "Todos los alcances probados";
 ?>'); ?></textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>

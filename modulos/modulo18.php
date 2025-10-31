@@ -1,7 +1,23 @@
 <?php
 session_start();
 require '../includes/db.php';
-if (!isset($_SESSION['user_id'])) { header("Location: ../login.php"); exit; }
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+
+$modulo = 18;
+$user_id = $_SESSION['user_id'];
+$mensaje = '';
+
+// Obtener 5 preguntas aleatorias del módulo
+$stmt = $pdo->prepare("SELECT * FROM preguntas WHERE modulo = ? ORDER BY RAND() LIMIT 5");
+$stmt->execute([$modulo]);
+$preguntas = $stmt->fetchAll();
+
+$titulo_modulo = "Módulo 18: CI4 – Controlador + Vista";
+$instrucciones = "Simula un controlador CI4 para mostrar productos usando estructura MVC (Model-View-Controller).";
 
 if (isset($_POST['code'])) {
     $code = $_POST['code'];
@@ -19,44 +35,32 @@ if (isset($_POST['code'])) {
     exit;
 }
 
-$modulo = 18;
-$user_id = $_SESSION['user_id'];
-$titulo_modulo = "Módulo 18: CI4 – Controlador + Vista";
-$instrucciones = "Simula un controlador CI4 para mostrar productos usando estructura MVC (Model-View-Controller).";
+// Procesar respuestas
+if ($_POST && isset($_POST['respuesta'])) {
+    $correctas = 0;
+    foreach ($_POST['respuesta'] as $pregunta_id => $respuesta_idx) {
+        $stmt = $pdo->prepare("SELECT respuesta_correcta FROM preguntas WHERE id = ?");
+        $stmt->execute([$pregunta_id]);
+        if ($stmt->fetchColumn() == $respuesta_idx) {
+            $correctas++;
+        }
+    }
 
-// Progreso
+    if ($correctas >= 3) {
+        // Guardar progreso en tabla progreso (sistema unificado)
+        $stmt = $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?");
+        $stmt->execute([$user_id, $modulo, $correctas * 20, $correctas * 20]);
+        $mensaje = "<div class='alert alert-success'>¡Módulo completado! $correctas/5 correctas ✓</div>";
+    } else {
+        $mensaje = "<div class='alert alert-danger'>Necesitas al menos 3 correctas. Tienes $correctas/5</div>";
+    }
+}
+
+// Verificar progreso
 $completado = false;
 $stmt = $pdo->prepare("SELECT completado FROM progreso WHERE user_id = ? AND modulo = ?");
 $stmt->execute([$user_id, $modulo]);
 if ($row = $stmt->fetch()) $completado = $row['completado'];
-
-// PREGUNTAS CORREGIDAS (JSON VÁLIDO)
-$preguntas = [
-    ["¿Clase padre Controller?", '["\\\\CodeIgniter\\\\Controller","BaseController","Controller","App\\\\Controller"]', 0],
-    ["¿Método por defecto?", '["index()","show()","list()","get()"]', 0],
-    ["¿Método BD CI4?", '["Database::connect()","getConnection()","db_connect()","connectDB()"]', 0],
-    ["¿Dónde van las vistas?", '["app/Views","app/Controllers","app/Models","public"]', 0],
-    ["¿Orden CI4 MVC?", '["Controller→Model→View","Model→View→Controller","View→Controller→Model","View→Model→Controller"]', 0]
-];
-
-$mensaje = '';
-if ($_POST['action'] ?? '' === 'verificar') {
-    $respuestas = $_POST['respuesta'] ?? [];
-    $correctas = 0;
-    foreach ($preguntas as $i => $p) {
-        $opciones = json_decode($p[1], true);
-        if (is_array($opciones) && ($respuestas[$i] ?? -1) == $p[2]) $correctas++;
-    }
-    if ($correctas == 5) {
-        $mensaje = "<div class='alert alert-success'>¡Módulo completado!</div>";
-        if (!$completado) {
-            $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, 100) ON DUPLICATE KEY UPDATE completado = 1")->execute([$user_id, $modulo]);
-            $completado = true;
-        }
-    } else {
-        $mensaje = "<div class='alert alert-danger'>$correctas/5 correctas.</div>";
-    }
-}
 
 $codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass Productos {\n    private \$db;\n    \n    // Método constructor simula CI4\n    public function __construct() {\n        global \$pdo;\n        \$this->db = \$pdo;\n    }\n    \n    public function index() {\n        // Simula CI4 Database Builder\n        \$stmt = \$this->db->query(\"SELECT * FROM productos ORDER BY id\");\n        \$productos = \$stmt->fetchAll();\n        \n        echo \"<h3>Lista de Productos (Estructura CI4)</h3>\";\n        echo \"<strong>Controlador:</strong> Productos->index()<br><br>\";\n        \n        foreach (\$productos as \$producto) {\n            echo \"<li>\" . \$producto['nombre'] . \" - $\" . number_format(\$producto['precio'], 2) . \"</li>\";\n        }\n        \n        echo \"<br><small><em>Concepto MVC: Controller→Model→View</em></small>\";\n    }\n}\n\n// Ejecutar como CI4\n\$controller = new Productos();\n\$controller->index();\n?>";
 ?>
@@ -65,7 +69,7 @@ $codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= $titulo_modulo ?></title>
+    <title>Módulo 18: CI4 – Controlador + Vista</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" rel="stylesheet">
     <style>.editor{height:320px;border:1px solid #ddd;}.output{min-height:100px;}</style>
@@ -76,10 +80,13 @@ $codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass
             <h2>Módulo 18: CI4 – Controlador + Vista</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
+
+        <?php if ($mensaje) echo $mensaje; ?>
+
     <div class="row">
         <div class="col-md-8">
             <div class="card">
-                <div class="card-header"><h5><?= $titulo_modulo ?></h5></div>
+                <div class="card-header"><h5>Módulo 18: CI4 – Controlador + Vista</h5></div>
                 <div class="card-body">
                     <p><strong>Instrucciones:</strong> <?= $instrucciones ?></p>
                     <textarea id="code" class="editor"><?= htmlspecialchars($codigo_inicial) ?></textarea>
@@ -90,22 +97,21 @@ $codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass
         </div>
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header"><h6>Evaluación</h6></div>
+                <div class="card-header"><h6>Evaluación (5 preguntas aleatorias)</h6></div>
                 <div class="card-body">
-                    <?= $mensaje ?>
+                    <?php if (!empty($preguntas)): ?>
                     <form method="post">
-                        <input type="hidden" name="action" value="verificar">
                         <?php foreach ($preguntas as $i => $p): ?>
-                            <div class="mb-3">
-                                <p class="fw-bold small"><?= $i+1 ?>. <?= $p[0] ?></p>
+                            <div class="mb-4 p-3 border rounded">
+                                <p class="mb-2"><strong><?= $i+1 ?>.</strong> <?= nl2br(htmlspecialchars($p['pregunta'])) ?></p>
                                 <?php 
-                                $opciones = json_decode($p[1], true);
+                                $opciones = json_decode($p['opciones']);
                                 if (is_array($opciones)) {
                                     foreach ($opciones as $j => $opcion): 
                                 ?>
                                     <div class="form-check">
-                                        <input class="form-check-input" type="radio" name="respuesta[<?= $i ?>]" value="<?= $j ?>" required>
-                                        <label class="form-check-label small"><?= htmlspecialchars($opcion) ?></label>
+                                        <input class="form-check-input" type="radio" name="respuesta[<?= $p['id'] ?>]" value="<?= $j ?>" required>
+                                        <label class="form-check-label"><?= htmlspecialchars($opcion) ?></label>
                                     </div>
                                 <?php 
                                     endforeach;
@@ -115,8 +121,11 @@ $codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass
                                 ?>
                             </div>
                         <?php endforeach; ?>
-                        <button type="submit" class="btn btn-primary btn-sm w-100">Enviar</button>
+                        <button type="submit" class="btn btn-primary w-100">Enviar Respuestas</button>
                     </form>
+                    <?php else: ?>
+                        <div class="alert alert-warning">No hay preguntas disponibles para este módulo.</div>
+                    <?php endif; ?>
                     <?php if ($completado): ?>
                         <div class="alert alert-success mt-3 text-center">Completado</div>
                     <?php endif; ?>
@@ -126,8 +135,6 @@ $codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass
     </div>
 </div>
 
-<!-- SCRIPTS ORDENADOS PARA EVITAR CONFLICTOS -->
-<!-- Primero CodeMirror y sus dependencias -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <script src="../assets/codemirror/mode/xml/xml.js"></script>
 <script src="../assets/codemirror/mode/javascript/javascript.js"></script>
@@ -136,10 +143,8 @@ $codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass
 <script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
 <script src="../assets/codemirror/mode/php/php.js"></script>
 
-<!-- Luego Bootstrap -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Finalmente nuestro código personalizado -->
 <script>
     const editor = CodeMirror.fromTextArea(document.getElementById('code'), {
         mode: 'php', lineNumbers: true, theme: 'default'

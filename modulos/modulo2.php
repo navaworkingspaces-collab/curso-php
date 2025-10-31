@@ -66,8 +66,74 @@ if ($_POST) {
                     </div>
                     <div class="card-body p-0">
                         <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
+// VARIABLES BÁSICAS
+$n="Juan";$a="Pérez";$e=25;$al=1.75;$est=true;$nul=null;
+
+// OPERACIONES MATEMÁTICAS
+$n1=15;$n2=3;$s=$n1+$n2;$r=$n1-$n2;$m=$n1*$n2;$d=$n1/$n2;$mod=$n1%$n2;$p=$n1**$n2;
+
+// OPERADORES COMPARACIÓN
+$ig=($n1==15);$id=($n1===15);$dif=($n1!=10);$may=($n1>10);$men=($n1<20);$maig=($n1>=15);
+
+// OPERADORES LÓGICOS
+$c1=true;$c2=false;$and=($c1&&$c2);$or=($c1||$c2);$not=(!$c1);
+
+// INCREMENTO
+$cont=0;$cont++;++$cont;$cont--;--$cont;$cont+=5;$cont-=2;$cont*=3;$cont/=2;
+
+// STRINGS
+$sal="Hola ".$n." ".$a;$msg="Tienes ".$e." años";
+
+// ARRAYS
+$frut=array("manzana","banana","naranja");$num=[1,2,3,4,5];$per=["nom"=>"María","edad"=>30,"ciudad"=>"Madrid"];
+
+// OPERACIONES ARRAYS
+array_push($frut,"uva");$ufrut=array_pop($frut);$cfrut=count($frut);
+
+// ESTRUCTURAS CONTROL
+if($e>=18){$cat="Adulto";}else{$cat="Menor";}
+switch($e){case 18:$msgE="Mayor edad";break;case 21:$msgE="Internacional";break;default:$msgE="Otra edad";}
+
+// BUCLES
+for($i=0;$i<5;$i++){$cua=$i*$i;}
+$j=0;while($j<3){$j++;}
+foreach($frut as $f){$fmay=strtoupper($f);}
+
+// FUNCIONES
+function sum($x,$y){return $x+$y;}
+function par($num){return($num%2==0);}
+
+// USO FUNCIONES
+$res=sum(10,5);$ver=par(4);
+
+// TERNARIOS
+$estd=($e>=18)?"Mayor":"Menor";$ntipo=($n1>0)?"Positivo":"Negativo";
+
+// FECHAS
+$fecha=date("Y-m-d");$hora=date("H:i:s");$fcomp=date("Y-m-d H:i:s");
+
+// STRINGS
+$txt="Hola Mundo PHP";$ltxt=strlen($txt);$tmay=strtoupper($txt);$tmin=strtolower($txt);$pos=strpos($txt,"Mundo");$trep=str_replace("PHP","JS",$txt);
+
+// CONSTANTES
+define("PI",3.1416);define("SITIO","Mi App");const VER="1.0";
+
+// OPERACIONES
+$area=PI*($n1**2);
+
+// SALIDA
+echo "Nombre: ".$n."\n";echo "Edad: ".$e."\n";echo "Suma: ".$s."\n";echo "Saludo: ".$sal."\n";
+
+// VERIFICACIÓN
+$def=isset($n);$vac=empty($nul);$tipo=gettype($e);
+
+// FUSIÓN NULL
+$vdef=$nod??"Default";$vanid=$noex??$otrono??"Final";
+
+// CONVERSIONES
+$cadnum=(int)"123";$numcad=(string)456;$boolint=(int)true;
+
+echo "Ejecutado sin errores";
 ?>'); ?></textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>

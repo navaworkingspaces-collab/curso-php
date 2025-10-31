@@ -42,7 +42,7 @@ if ($_POST) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Módulo 8: Funciones de cadena</title>
+    <title>Módulo 8: Include / Require</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/codemirror/lib/codemirror.css" rel="stylesheet">
     <link href="../assets/codemirror/theme/monokai.css" rel="stylesheet">
@@ -51,7 +51,7 @@ if ($_POST) {
 <body>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Módulo 8: Funciones de cadena</h2>
+            <h2>Módulo 8: Include / Require</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
 
@@ -65,10 +65,14 @@ if ($_POST) {
                         <strong>Editor de Código</strong>
                     </div>
                     <div class="card-body p-0">
-                        <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
-?>'); ?></textarea>
+                        <textarea id="code">&lt;?php
+echo "COMIENZO\n";
+include '../templates/a.php';
+require '../templates/b.php'; 
+include_once '../configs/c.php';
+require_once '../includes/d.php';
+echo "FINAL\n";
+?&gt;</textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>
                         </div>

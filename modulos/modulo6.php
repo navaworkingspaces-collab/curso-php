@@ -42,7 +42,7 @@ if ($_POST) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Módulo 6: INCLUDE / REQUIRE</title>
+    <title>Módulo 6: Arrays</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/codemirror/lib/codemirror.css" rel="stylesheet">
     <link href="../assets/codemirror/theme/monokai.css" rel="stylesheet">
@@ -51,7 +51,7 @@ if ($_POST) {
 <body>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Módulo 6: INCLUDE / REQUIRE</h2>
+            <h2>Módulo 6: Arrays</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
 
@@ -66,8 +66,61 @@ if ($_POST) {
                     </div>
                     <div class="card-body p-0">
                         <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
+// ARRAYS INDEXADOS
+$frutas=["manzana","banana","naranja"];
+$numeros=[1,2,3,4,5];
+$mezcla=[10,"texto",true,3.14];
+
+// ARRAYS ASOCIATIVOS
+$persona=["nombre"=>"Ana","edad"=>25,"ciudad"=>"Lima"];
+$producto=["id"=>101,"precio"=>99.99,"stock"=>50];
+
+// FUNCIONES BÁSICAS
+function saludar($nombre){return "Hola $nombre";}
+function sumar($a,$b){return $a+$b;}
+function esPar($num){return $num%2==0;}
+
+// FUNCIONES CON ARRAYS
+function mostrarArray($arr){foreach($arr as $v)echo "$v ";}
+function encontrarMax($nums){return max($nums);}
+function promediar($valores){return array_sum($valores)/count($valores);}
+
+// USO DE FUNCIONES
+echo saludar("Juan")."\n";
+echo "Suma: ".sumar(5,3)."\n";
+echo "Es par: ".(esPar(4)?"Sí":"No")."\n";
+
+// OPERACIONES CON ARRAYS
+array_push($frutas,"uva");
+$ultimo=array_pop($numeros);
+$longitud=count($mezcla);
+$existe=in_array("banana",$frutas);
+
+// ARRAY FUNCTIONS
+$cuadrados=array_map(function($n){return $n*$n;},[1,2,3]);
+$pares=array_filter([1,2,3,4,5],function($n){return $n%2==0;});
+$sumaTotal=array_reduce([1,2,3],function($carry,$item){return $carry+$item;},0);
+
+// FUNCIONES QUE RETORNAN ARRAYS
+function generarPares($limite){$pares=[];for($i=2;$i<=$limite;$i+=2)$pares[]=$i;return $pares;}
+function dividirCadena($texto){return explode(" ",$texto);}
+
+// USO
+$pares=generarPares(10);
+$palabras=dividirCadena("Hola mundo PHP");
+
+// RECORRER ARRAYS
+foreach($frutas as $fruta)echo "Fruta: $fruta\n";
+foreach($persona as $clave=>$valor)echo "$clave: $valor\n";
+
+// FUNCIONES CON PARÁMETROS POR DEFECTO
+function multiplicar($a,$b=2){return $a*$b;}
+function crearUsuario($nombre,$edad=18,$activo=true){return ["nombre"=>$nombre,"edad"=>$edad,"activo"=>$activo];}
+
+echo "Multiplicar: ".multiplicar(5)."\n";
+$usuario=crearUsuario("Carlos");
+
+echo "Arrays y funciones completados";
 ?>'); ?></textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>

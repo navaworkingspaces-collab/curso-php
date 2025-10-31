@@ -1,15 +1,25 @@
 <?php
 session_start();
 require '../includes/db.php';
-if (!isset($_SESSION['user_id'])) { header("Location: ../login.php"); exit; }
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
 
 $modulo = 17;
 $user_id = $_SESSION['user_id'];
-$titulo_modulo = "Módulo 17: Admin Tienda 2 – Pedidos";
+$mensaje = '';
+
+// Obtener 5 preguntas aleatorias del módulo
+$stmt = $pdo->prepare("SELECT * FROM preguntas WHERE modulo = ? ORDER BY RAND() LIMIT 5");
+$stmt->execute([$modulo]);
+$preguntas = $stmt->fetchAll();
+
+$titulo_modulo = "Módulo 17: Admin Tienda 2 – Gestión de Pedidos";
 $instrucciones = "Usa PDO para listar pedidos y cambiar estado. Genera PDF con <code>echo</code> simulado.";
 
 // === CAMBIAR ESTADO PEDIDO ===
-$mensaje = '';
 if ($_POST['action'] ?? '' === 'cambiar_estado') {
     $pedido_id = intval($_POST['pedido_id'] ?? 0);
     $estado = $_POST['estado'] ?? '';
@@ -40,38 +50,32 @@ if (isset($_POST['code'])) {
     exit;
 }
 
-// Progreso
+// Procesar respuestas
+if ($_POST && isset($_POST['respuesta'])) {
+    $correctas = 0;
+    foreach ($_POST['respuesta'] as $pregunta_id => $respuesta_idx) {
+        $stmt = $pdo->prepare("SELECT respuesta_correcta FROM preguntas WHERE id = ?");
+        $stmt->execute([$pregunta_id]);
+        if ($stmt->fetchColumn() == $respuesta_idx) {
+            $correctas++;
+        }
+    }
+
+    if ($correctas >= 3) {
+        // Guardar progreso en tabla progreso (sistema unificado)
+        $stmt = $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?");
+        $stmt->execute([$user_id, $modulo, $correctas * 20, $correctas * 20]);
+        $mensaje = "<div class='alert alert-success'>¡Módulo completado! $correctas/5 correctas ✓</div>";
+    } else {
+        $mensaje = "<div class='alert alert-danger'>Necesitas al menos 3 correctas. Tienes $correctas/5</div>";
+    }
+}
+
+// Verificar progreso
 $completado = false;
 $stmt = $pdo->prepare("SELECT completado FROM progreso WHERE user_id = ? AND modulo = ?");
 $stmt->execute([$user_id, $modulo]);
 if ($row = $stmt->fetch()) $completado = $row['completado'];
-
-// Preguntas
-$preguntas = [
-    ["¿Cómo cambias el estado?", '["UPDATE pedidos SET estado=?", "INSERT", "DELETE", "SELECT"]', 0],
-    ["¿Qué estados hay?", '["Pendiente, Enviado, Entregado", "Activo, Inactivo", "Nuevo, Viejo", "Sí, No"]', 0],
-    ["¿Cómo generas PDF?", '["echo HTML con CSS", "header PDF", "include", "file_get_contents"]', 0],
-    ["¿Qué hace JOIN?", '["Une tablas", "Borra", "Crea", "Filtra"]', 0],
-    ["¿Se puede ver sin login?", '["No, header login", "Sí", "Solo admin", "Con cookie"]', 0]
-];
-
-// Procesar respuestas
-if ($_POST['action'] ?? '' === 'verificar') {
-    $respuestas = $_POST['respuesta'] ?? [];
-    $correctas = 0;
-    foreach ($preguntas as $i => $p) {
-        if (($respuestas[$i] ?? -1) == $p[2]) $correctas++;
-    }
-    if ($correctas == 5) {
-        $mensaje = "<div class='alert alert-success'>¡Módulo completado!</div>";
-        if (!$completado) {
-            $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, 100) ON DUPLICATE KEY UPDATE completado = 1")->execute([$user_id, $modulo]);
-            $completado = true;
-        }
-    } else {
-        $mensaje = "<div class='alert alert-danger'>$correctas/5 correctas.</div>";
-    }
-}
 
 // Obtener pedidos con productos
 $pedidos = $pdo->query("
@@ -92,7 +96,7 @@ $codigo_inicial = "<?php\n// Listar pedidos\n\$stmt = \$pdo->query(\"SELECT p.*,
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= $titulo_modulo ?></title>
+    <title>Módulo 17: Admin Tienda 2 – Gestión de Pedidos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
@@ -105,13 +109,16 @@ $codigo_inicial = "<?php\n// Listar pedidos\n\$stmt = \$pdo->query(\"SELECT p.*,
 <body class="bg-light">
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Módulo 17: Carrito IV – Resumen de Pedido</h2>
+            <h2>Módulo 17: Admin Tienda 2 – Gestión de Pedidos</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
+
+        <?php if ($mensaje) echo $mensaje; ?>
+
         <div class="row">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header"><h5><?= $titulo_modulo ?></h5></div>
+                    <div class="card-header"><h5>Módulo 17: Admin Tienda 2 – Gestión de Pedidos</h5></div>
                     <div class="card-body">
                         <p><strong>Instrucciones:</strong> <?= $instrucciones ?></p>
                         <textarea id="code" class="editor"><?= htmlspecialchars($codigo_inicial) ?></textarea>
@@ -161,24 +168,27 @@ $codigo_inicial = "<?php\n// Listar pedidos\n\$stmt = \$pdo->query(\"SELECT p.*,
 
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header"><h6>Evaluación</h6></div>
+                    <div class="card-header"><h6>Evaluación (5 preguntas aleatorias)</h6></div>
                     <div class="card-body">
-                        <?= $mensaje ?>
+                        <?php if (!empty($preguntas)): ?>
                         <form method="post">
-                            <input type="hidden" name="action" value="verificar">
                             <?php foreach ($preguntas as $i => $p): ?>
-                                <div class="mb-3">
-                                    <p class="fw-bold small"><?= $i+1 ?>. <?= $p[0] ?></p>
-                                    <?php $opciones = json_decode($p[1], true); foreach ($opciones as $j => $opcion): ?>
+                                <div class="mb-4 p-3 border rounded">
+                                    <p class="mb-2"><strong><?= $i+1 ?>.</strong> <?= nl2br(htmlspecialchars($p['pregunta'])) ?></p>
+                                    <?php $opciones = json_decode($p['opciones']); ?>
+                                    <?php foreach ($opciones as $j => $opcion): ?>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="respuesta[<?= $i ?>]" value="<?= $j ?>" required>
-                                            <label class="form-check-label small"><?= htmlspecialchars($opcion) ?></label>
+                                            <input class="form-check-input" type="radio" name="respuesta[<?= $p['id'] ?>]" value="<?= $j ?>" required>
+                                            <label class="form-check-label"><?= htmlspecialchars($opcion) ?></label>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endforeach; ?>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Enviar</button>
+                            <button type="submit" class="btn btn-primary w-100">Enviar Respuestas</button>
                         </form>
+                        <?php else: ?>
+                            <div class="alert alert-warning">No hay preguntas disponibles para este módulo.</div>
+                        <?php endif; ?>
                         <?php if ($completado): ?>
                             <div class="alert alert-success mt-3 text-center">Completado</div>
                         <?php endif; ?>

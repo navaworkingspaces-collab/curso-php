@@ -42,7 +42,7 @@ if ($_POST) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Módulo 10: INCLUDE / GOTO</title>
+    <title>Módulo 10: Funciones de Cadena y Fecha</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/codemirror/lib/codemirror.css" rel="stylesheet">
     <link href="../assets/codemirror/theme/monokai.css" rel="stylesheet">
@@ -51,7 +51,7 @@ if ($_POST) {
 <body>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Módulo 10: INCLUDE / GOTO</h2>
+            <h2>Módulo 10: Funciones de Cadena y Fecha</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
 
@@ -65,10 +65,37 @@ if ($_POST) {
                         <strong>Editor de Código</strong>
                     </div>
                     <div class="card-body p-0">
-                        <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
-?>'); ?></textarea>
+                        <textarea id="code">&lt;?php
+// FUNCIONES DE CADENA
+$texto="Hola Mundo PHP";
+echo "Original: $texto\n";
+echo "Mayus: ".strtoupper($texto)."\n";
+echo "Minus: ".strtolower($texto)."\n";
+echo "Longitud: ".strlen($texto)."\n";
+echo "Pos Mundo: ".strpos($texto,"Mundo")."\n";
+echo "Substring: ".substr($texto,5,5)."\n";
+echo "Reemplazar: ".str_replace("PHP","JavaScript",$texto)."\n";
+echo "Palabras: ".str_word_count($texto)."\n";
+
+// FUNCIONES DE FECHA
+echo "\n--- FECHAS ---\n";
+echo "Hoy: ".date("Y-m-d")."\n";
+echo "Hora: ".date("H:i:s")."\n";
+echo "Completo: ".date("d/m/Y H:i:s")."\n";
+echo "Dia semana: ".date("l")."\n";
+echo "Timestamp: ".time()."\n";
+
+// STRING FUNCTIONS
+$cadena="   texto con espacios   ";
+echo "Trim: '".trim($cadena)."'\n";
+echo "Repeat: ".str_repeat("*",5)."\n";
+echo "Reverse: ".strrev("Hola")."\n";
+
+// DATE FUNCTIONS
+$futuro=strtotime("+1 week");
+echo "En una semana: ".date("Y-m-d",$futuro)."\n";
+echo "Diferencia dias: ".floor((strtotime("2024-12-31")-time())/86400)."\n";
+?&gt;</textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>
                         </div>

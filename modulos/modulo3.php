@@ -66,8 +66,41 @@ if ($_POST) {
                     </div>
                     <div class="card-body p-0">
                         <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
+// IF-ELSE
+$e=25;$s=1500;$p=85;
+if($e>=18)echo "Adulto\n";else echo "Menor\n";
+if($s>1000)echo "Rico\n";elseif($s>500)echo "Medio\n";else echo "Pobre\n";
+$g=($p>=90)?"A":(($p>=80)?"B":(($p>=70)?"C":"D"));
+
+// SWITCH
+$d=3;
+switch($d){case 1:echo "Lun\n";break;case 2:echo "Mar\n";break;case 3:echo "Mie\n";break;case 4:echo "Jue\n";break;case 5:echo "Vie\n";break;default:echo "Fin\n";}
+
+// WHILE
+$i=1;while($i<=3){echo "W:$i\n";$i++;}
+$t=0;while($t<2){echo "T:$t\n";$t++;}
+
+// DO-WHILE
+$j=1;do{echo "D:$j\n";$j++;}while($j<=2);
+$n=3;do{echo "N:$n\n";$n--;}while($n>1);
+
+// FOR
+for($k=0;$k<3;$k++)echo "F:$k\n";
+for($x=2;$x>0;$x--)echo "R:$x\n";
+
+// FOREACH
+$f=["manz","bana","nara"];foreach($f as $fr)echo "Fr:$fr\n";
+$per=["nom"=>"Ana","edad"=>30];foreach($per as $c=>$v)echo "$c:$v\n";
+
+// BREAK/CONTINUE
+for($m=1;$m<=4;$m++){if($m==3)break;echo "B:$m\n";}
+for($n=1;$n<=3;$n++){if($n==2)continue;echo "C:$n\n";}
+
+// TERNARIO
+$est=($e>=18)?"Mayor":"Menor";
+$msg=($s>0)?"Con saldo":"Sin saldo";
+
+echo "Todo correcto";
 ?>'); ?></textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>

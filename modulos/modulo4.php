@@ -66,8 +66,43 @@ if ($_POST) {
                     </div>
                     <div class="card-body p-0">
                         <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
+// WHILE BÁSICO
+$i=1;while($i<=5){echo "Número: $i\n";$i++;}
+
+// WHILE DECRECIENTE
+$j=5;while($j>=1){echo "Cuenta: $j\n";$j--;}
+
+// WHILE CON ARRAY
+$frutas=["manzana","banana","naranja"];$index=0;
+while($index<count($frutas)){echo "Fruta: ".$frutas[$index]."\n";$index++;}
+
+// WHILE CON CONDICIÓN COMPUESTA
+$a=1;$b=10;
+while($a<=3 && $b>=8){echo "A: $a, B: $b\n";$a++;$b--;}
+
+// DO-WHILE BÁSICO
+$k=1;do{echo "Do-While: $k\n";$k++;}while($k<=3);
+
+// DO-WHILE QUE SE EJECUTA AL MENOS UNA VEZ
+$num=10;do{echo "Número: $num\n";$num--;}while($num>8);
+
+// DO-WHILE CON ARRAY
+$colores=["rojo","verde","azul"];$pos=0;
+do{echo "Color: ".$colores[$pos]."\n";$pos++;}while($pos<count($colores));
+
+// WHILE CON BREAK
+$contador=1;
+while(true){echo "Contador: $contador\n";if($contador>=3){break;}$contador++;}
+
+// DO-WHILE CON CONTINUE
+$m=0;
+do{$m++;if($m==2){continue;}echo "Valor: $m\n";}while($m<4);
+
+// WHILE ANIDADO
+$x=1;
+while($x<=2){$y=1;while($y<=2){echo "X: $x, Y: $y\n";$y++;}$x++;}
+
+echo "Bucles completados";
 ?>'); ?></textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>

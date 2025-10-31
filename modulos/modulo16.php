@@ -1,10 +1,21 @@
 <?php
 session_start();
 require '../includes/db.php';
-if (!isset($_SESSION['user_id'])) { header("Location: ../login.php"); exit; }
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
 
 $modulo = 16;
 $user_id = $_SESSION['user_id'];
+$mensaje = '';
+
+// Obtener 5 preguntas aleatorias del módulo
+$stmt = $pdo->prepare("SELECT * FROM preguntas WHERE modulo = ? ORDER BY RAND() LIMIT 5");
+$stmt->execute([$modulo]);
+$preguntas = $stmt->fetchAll();
+
 $titulo_modulo = "Módulo 16: Panel Admin – CRUD Productos";
 $instrucciones = "Usa PDO para listar, crear, editar y eliminar productos.";
 
@@ -16,8 +27,6 @@ try {
 }
 
 // === SEGUNDO: PROCESAR ACCIONES CRUD ===
-$mensaje = '';
-
 // CREAR PRODUCTO
 if (($_POST['action'] ?? '') === 'crear') {
     $nombre = trim($_POST['nombre'] ?? '');
@@ -104,29 +113,24 @@ $stmt = $pdo->prepare("SELECT completado FROM progreso WHERE user_id = ? AND mod
 $stmt->execute([$user_id, $modulo]);
 if ($row = $stmt->fetch()) $completado = $row['completado'];
 
-$preguntas = [
-    ["¿Qué método usas para INSERT?", '["execute()", "query()", "fetch()", "bind()"]', 0],
-    ["¿Cómo evitas SQL Injection?", '["prepare() + execute()", "addslashes()", "mysql_escape()", "filter_var()"]', 0],
-    ["¿Qué devuelve fetch()?", '["Array asociativo", "String", "Objeto", "Boolean"]', 0],
-    ["¿Cómo actualizas un registro?", '["UPDATE ... WHERE id=?", "INSERT ... ON DUPLICATE", "REPLACE", "ALTER"]', 0],
-    ["¿Qué hace DELETE?", '["Elimina fila", "Vacía tabla", "Borra BD", "Desactiva"]', 0]
-];
-
 // Procesar respuestas
-if (($_POST['action'] ?? '') === 'verificar') {
-    $respuestas = $_POST['respuesta'] ?? [];
+if ($_POST && isset($_POST['respuesta'])) {
     $correctas = 0;
-    foreach ($preguntas as $i => $p) {
-        if (($respuestas[$i] ?? -1) == $p[2]) $correctas++;
-    }
-    if ($correctas == 5) {
-        $mensaje = "<div class='alert alert-success'>¡Módulo completado!</div>";
-        if (!$completado) {
-            $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, 100) ON DUPLICATE KEY UPDATE completado = 1")->execute([$user_id, $modulo]);
-            $completado = true;
+    foreach ($_POST['respuesta'] as $pregunta_id => $respuesta_idx) {
+        $stmt = $pdo->prepare("SELECT respuesta_correcta FROM preguntas WHERE id = ?");
+        $stmt->execute([$pregunta_id]);
+        if ($stmt->fetchColumn() == $respuesta_idx) {
+            $correctas++;
         }
+    }
+
+    if ($correctas >= 3) {
+        // Guardar progreso en tabla progreso (sistema unificado)
+        $stmt = $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?");
+        $stmt->execute([$user_id, $modulo, $correctas * 20, $correctas * 20]);
+        $mensaje = "<div class='alert alert-success'>¡Módulo completado! $correctas/5 correctas ✓</div>";
     } else {
-        $mensaje = "<div class='alert alert-danger'>$correctas/5 correctas.</div>";
+        $mensaje = "<div class='alert alert-danger'>Necesitas al menos 3 correctas. Tienes $correctas/5</div>";
     }
 }
 
@@ -137,7 +141,7 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= $titulo_modulo ?></title>
+    <title>Módulo 16: Panel Admin – CRUD Productos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" rel="stylesheet">
     <style>
@@ -149,7 +153,7 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
 <body class="bg-light">
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Módulo 16: Carrito III – Finalizar Pedido</h2>
+            <h2>Módulo 16: Panel Admin – CRUD Productos</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
         
@@ -163,7 +167,7 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
         <div class="row">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header"><h5><?= $titulo_modulo ?></h5></div>
+                    <div class="card-header"><h5>Módulo 16: Panel Admin – CRUD Productos</h5></div>
                     <div class="card-body">
                         <p><strong>Instrucciones:</strong> <?= $instrucciones ?></p>
                         <textarea id="code" class="editor"><?= htmlspecialchars($codigo_inicial) ?></textarea>
@@ -229,28 +233,29 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
                 </div>
             </div>
 
-            <!-- ... el resto del código permanece igual ... -->
-
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header"><h6>Evaluación</h6></div>
+                    <div class="card-header"><h6>Evaluación (5 preguntas aleatorias)</h6></div>
                     <div class="card-body">
-                        <?= $mensaje ?>
+                        <?php if (!empty($preguntas)): ?>
                         <form method="post">
-                            <input type="hidden" name="action" value="verificar">
                             <?php foreach ($preguntas as $i => $p): ?>
-                                <div class="mb-3">
-                                    <p class="fw-bold small"><?= $i+1 ?>. <?= $p[0] ?></p>
-                                    <?php $opciones = json_decode($p[1], true); foreach ($opciones as $j => $opcion): ?>
+                                <div class="mb-4 p-3 border rounded">
+                                    <p class="mb-2"><strong><?= $i+1 ?>.</strong> <?= nl2br(htmlspecialchars($p['pregunta'])) ?></p>
+                                    <?php $opciones = json_decode($p['opciones']); ?>
+                                    <?php foreach ($opciones as $j => $opcion): ?>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="respuesta[<?= $i ?>]" value="<?= $j ?>" required>
-                                            <label class="form-check-label small"><?= htmlspecialchars($opcion) ?></label>
+                                            <input class="form-check-input" type="radio" name="respuesta[<?= $p['id'] ?>]" value="<?= $j ?>" required>
+                                            <label class="form-check-label"><?= htmlspecialchars($opcion) ?></label>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endforeach; ?>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Enviar</button>
+                            <button type="submit" class="btn btn-primary w-100">Enviar Respuestas</button>
                         </form>
+                        <?php else: ?>
+                            <div class="alert alert-warning">No hay preguntas disponibles para este módulo.</div>
+                        <?php endif; ?>
                         <?php if ($completado): ?>
                             <div class="alert alert-success mt-3 text-center">Completado</div>
                         <?php endif; ?>
@@ -295,7 +300,6 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
     </div>
 
     <!-- SCRIPTS ORDENADOS PARA EVITAR CONFLICTOS -->
-    <!-- Primero CodeMirror y sus dependencias -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="../assets/codemirror/mode/xml/xml.js"></script>
     <script src="../assets/codemirror/mode/javascript/javascript.js"></script>
@@ -304,14 +308,10 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
     <script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
     <script src="../assets/codemirror/mode/php/php.js"></script>
     
-    <!-- Luego Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Finalmente nuestro código personalizado -->
     <script>
-        // Inicializar CodeMirror - DEBE estar después de cargar todos los modos
         document.addEventListener('DOMContentLoaded', function() {
-            // Configurar CodeMirror
             const editor = CodeMirror.fromTextArea(document.getElementById('code'), {
                 mode: 'application/x-httpd-php',
                 lineNumbers: true,
@@ -321,7 +321,6 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
                 indentWithTabs: false
             });
 
-            // Configurar botón ejecutar
             document.getElementById('run').onclick = () => {
                 const code = editor.getValue();
                 const formData = new FormData();
@@ -331,7 +330,6 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
                     .then(text => document.getElementById('output').innerHTML = text);
             };
 
-            // Configurar botones editar - USANDO EVENT DELEGATION para evitar conflictos
             document.addEventListener('click', function(e) {
                 if (e.target.classList.contains('edit-btn')) {
                     const button = e.target;
@@ -339,8 +337,6 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
                     const nombre = button.getAttribute('data-nombre');
                     const precio = button.getAttribute('data-precio');
                     const stock = button.getAttribute('data-stock');
-                    
-                    console.log('Editando producto:', {id, nombre, precio, stock});
                     
                     document.getElementById('edit_id').value = id;
                     document.getElementById('edit_nombre').value = nombre;
@@ -351,18 +347,6 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
                     modal.show();
                 }
             });
-
-            // Función global como respaldo adicional
-            window.edit = function(id, nombre, precio, stock) {
-                console.log('Función edit global llamada:', {id, nombre, precio, stock});
-                document.getElementById('edit_id').value = id;
-                document.getElementById('edit_nombre').value = nombre;
-                document.getElementById('edit_precio').value = precio;
-                document.getElementById('edit_stock').value = stock;
-                
-                const modal = new bootstrap.Modal(document.getElementById('editModal'));
-                modal.show();
-            };
         });
     </script>
 </body>

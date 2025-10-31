@@ -1,7 +1,20 @@
 <?php
 session_start();
 require '../includes/db.php';
-if (!isset($_SESSION['user_id'])) { header("Location: ../login.php"); exit; }
+
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../login.php");
+    exit;
+}
+
+$modulo = 13;
+$user_id = $_SESSION['user_id'];
+$mensaje = '';
+
+// Obtener 5 preguntas aleatorias del módulo
+$stmt = $pdo->prepare("SELECT * FROM preguntas WHERE modulo = ? ORDER BY RAND() LIMIT 5");
+$stmt->execute([$modulo]);
+$preguntas = $stmt->fetchAll();
 
 // === CARGAR SMARTY CON RUTA ABSOLUTA ===
 $smarty_path = realpath(__DIR__ . '/smarty/libs/Smarty.class.php');
@@ -68,47 +81,32 @@ if (isset($_POST['code'])) {
 }
 // =====================================
 
-$modulo = 13;
-$user_id = $_SESSION['user_id'];
-$titulo_modulo = "Módulo 13: Smarty (Motor de Plantillas)";
-$instrucciones = "Usa {\$nombre}, {foreach}, {if}. <strong>¡Smarty REAL!</strong>";
+// Procesar respuestas
+if ($_POST && isset($_POST['respuesta'])) {
+    $correctas = 0;
+    foreach ($_POST['respuesta'] as $pregunta_id => $respuesta_idx) {
+        $stmt = $pdo->prepare("SELECT respuesta_correcta FROM preguntas WHERE id = ?");
+        $stmt->execute([$pregunta_id]);
+        if ($stmt->fetchColumn() == $respuesta_idx) {
+            $correctas++;
+        }
+    }
 
-// Progreso
+    if ($correctas >= 3) {
+        // Guardar progreso en tabla progreso (sistema unificado)
+        $stmt = $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?");
+        $stmt->execute([$user_id, $modulo, $correctas * 20, $correctas * 20]);
+        $mensaje = "<div class='alert alert-success'>¡Módulo completado! $correctas/5 correctas ✓</div>";
+    } else {
+        $mensaje = "<div class='alert alert-danger'>Necesitas al menos 3 correctas. Tienes $correctas/5</div>";
+    }
+}
+
+// Verificar progreso
 $completado = false;
 $stmt = $pdo->prepare("SELECT completado FROM progreso WHERE user_id = ? AND modulo = ?");
 $stmt->execute([$user_id, $modulo]);
 if ($row = $stmt->fetch()) $completado = $row['completado'];
-
-// Preguntas
-$preguntas = [
-    ["¿Qué separa Smarty?", '["Lógica y vista", "Base de datos", "Sesiones", "Cookies"]', 0],
-    ["¿Sintaxis de variable?", '["{{$var}}", "[$var]", "<%= var %>", "{{var}}"]', 0],
-    ["¿Qué hace {assign}?", '["Define variable", "Imprime", "Incluye archivo", "Bucle"]', 0],
-    ["¿foreach necesita?", '["from e item", "key y value", "solo array", "índice"]', 0],
-    ["¿Smarty evita XSS?", '["Sí", "No", "Solo con escape", "Nunca"]', 0]
-];
-
-// Procesar respuestas
-$mensaje = '';
-if ($_POST['action'] ?? '' === 'verificar') {
-    $respuestas = $_POST['respuesta'] ?? [];
-    $correctas = 0;
-    foreach ($preguntas as $i => $p) {
-        if (($respuestas[$i] ?? -1) == $p[2]) $correctas++;
-    }
-    $puntaje = $correctas * 20;
-
-    if ($correctas == 5) {
-        $mensaje = "<div class='alert alert-success'>¡Módulo completado!</div>";
-        if (!$completado) {
-            $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?")
-                ->execute([$user_id, $modulo, $puntaje, $puntaje]);
-            $completado = true;
-        }
-    } else {
-        $mensaje = "<div class='alert alert-danger'>$correctas/5 correctas.</div>";
-    }
-}
 
 // Código inicial
 $codigo_inicial = "{assign var=\"saludo\" value=\"Hola\"}\n<h1>{\$saludo} {\$nombre}</h1>\n\n{if \$edad >= 18}\n    <p class=\"text-success\">Mayor de edad</p>\n{else}\n    <p class=\"text-warning\">Menor de edad</p>\n{/if}\n\n<h3>Usuarios:</h3>\n<ul>\n{foreach from=\$usuarios item=u}\n    <li><strong>{\$u.nombre}</strong> - {\$u.edad} años</li>\n{/foreach}\n</ul>";
@@ -118,7 +116,7 @@ $codigo_inicial = "{assign var=\"saludo\" value=\"Hola\"}\n<h1>{\$saludo} {\$nom
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title><?= $titulo_modulo ?></title>
+    <title>Módulo 13: Smarty (Motor de Plantillas)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" rel="stylesheet">
     <style>
@@ -133,12 +131,15 @@ $codigo_inicial = "{assign var=\"saludo\" value=\"Hola\"}\n<h1>{\$saludo} {\$nom
             <h2>Módulo 13: Smarty (Motor de Plantillas)</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
+
+        <?php if ($mensaje) echo $mensaje; ?>
+
         <div class="row">
             <div class="col-md-8">
                 <div class="card">
-                    <div class="card-header"><h5><?= $titulo_modulo ?></h5></div>
+                    <div class="card-header"><h5>Módulo 13: Smarty (Motor de Plantillas)</h5></div>
                     <div class="card-body">
-                        <p><strong>Instrucciones:</strong> <?= $instrucciones ?></p>
+                        <p><strong>Instrucciones:</strong> Usa {\$nombre}, {foreach}, {if}. <strong>¡Smarty REAL!</strong></p>
                         <textarea id="code" class="editor"><?= htmlspecialchars($codigo_inicial) ?></textarea>
                         <button id="run" class="btn btn-success mt-2">Ejecutar Smarty</button>
                         <div id="output" class="output mt-3"></div>
@@ -148,28 +149,27 @@ $codigo_inicial = "{assign var=\"saludo\" value=\"Hola\"}\n<h1>{\$saludo} {\$nom
 
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header"><h6>Evaluación</h6></div>
+                    <div class="card-header"><h6>Evaluación (5 preguntas aleatorias)</h6></div>
                     <div class="card-body">
-                        <?= $mensaje ?>
+                        <?php if (!empty($preguntas)): ?>
                         <form method="post">
-                            <input type="hidden" name="action" value="verificar">
                             <?php foreach ($preguntas as $i => $p): ?>
-                                <div class="mb-3">
-                                    <p class="fw-bold small"><?= $i+1 ?>. <?= $p[0] ?></p>
-                                    <?php 
-                                    $opciones = json_decode($p[1], true);
-                                    if (is_array($opciones)) {
-                                        foreach ($opciones as $j => $opcion): 
-                                    ?>
+                                <div class="mb-4 p-3 border rounded">
+                                    <p class="mb-2"><strong><?= $i+1 ?>.</strong> <?= nl2br(htmlspecialchars($p['pregunta'])) ?></p>
+                                    <?php $opciones = json_decode($p['opciones']); ?>
+                                    <?php foreach ($opciones as $j => $opcion): ?>
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="respuesta[<?= $i ?>]" value="<?= $j ?>" id="q<?= $i ?>_<?= $j ?>" required>
-                                            <label class="form-check-label small" for="q<?= $i ?>_<?= $j ?>"><?= htmlspecialchars($opcion) ?></label>
+                                            <input class="form-check-input" type="radio" name="respuesta[<?= $p['id'] ?>]" value="<?= $j ?>" required>
+                                            <label class="form-check-label"><?= htmlspecialchars($opcion) ?></label>
                                         </div>
-                                    <?php endforeach; } ?>
+                                    <?php endforeach; ?>
                                 </div>
                             <?php endforeach; ?>
-                            <button type="submit" class="btn btn-primary btn-sm w-100">Enviar</button>
+                            <button type="submit" class="btn btn-primary w-100">Enviar Respuestas</button>
                         </form>
+                        <?php else: ?>
+                            <div class="alert alert-warning">No hay preguntas disponibles para este módulo.</div>
+                        <?php endif; ?>
                         <?php if ($completado): ?>
                             <div class="alert alert-success mt-3 text-center">Completado</div>
                         <?php endif; ?>

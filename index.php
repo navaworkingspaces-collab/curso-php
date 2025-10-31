@@ -16,7 +16,7 @@
                     <a href="register.php" class="btn btn-success btn-lg">📝 Registrarse</a>
                 </div>
                 <div class="mt-4">
-                    <small class="text-muted">20 Módulos • 100 Preguntas</small>
+                    <small class="text-muted">20 Módulos • 200 Preguntas</small>
                 </div>
             </div>
         </div>

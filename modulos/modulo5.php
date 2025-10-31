@@ -42,7 +42,7 @@ if ($_POST) {
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Módulo 5: Funciones</title>
+    <title>Módulo 5: Bucles (for, foreach)</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="../assets/codemirror/lib/codemirror.css" rel="stylesheet">
     <link href="../assets/codemirror/theme/monokai.css" rel="stylesheet">
@@ -51,7 +51,7 @@ if ($_POST) {
 <body>
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2>Módulo 5: Funciones</h2>
+            <h2>Módulo 5: Bucles (for, foreach)</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
 
@@ -66,8 +66,47 @@ if ($_POST) {
                     </div>
                     <div class="card-body p-0">
                         <textarea id="code"><?php echo htmlspecialchars('<?php
-// Escribe tu código aquí
-echo "Hola Mundo";
+// FOR BÁSICO
+for($i=1;$i<=5;$i++){echo "Numero: $i\n";}
+
+// FOR DECRECIENTE
+for($j=5;$j>=1;$j--){echo "Cuenta: $j\n";}
+
+// FOR CON INCREMENTO
+for($k=0;$k<=10;$k+=2){echo "Par: $k\n";}
+
+// FOR CON ARRAY
+$frutas=["manzana","banana","naranja"];
+for($ind=0;$ind<count($frutas);$ind++){echo "Fruta: ".$frutas[$ind]."\n";}
+
+// FOR ANIDADO
+for($x=1;$x<=2;$x++){for($y=1;$y<=2;$y++){echo "X: $x, Y: $y\n";}}
+
+// FOR CON BREAK
+for($m=1;$m<=5;$m++){if($m==4)break;echo "Break: $m\n";}
+
+// FOR CON CONTINUE
+for($n=1;$n<=5;$n++){if($n==3)continue;echo "Continue: $n\n";}
+
+// FOREACH BÁSICO
+$colores=["rojo","verde","azul"];
+foreach($colores as $color){echo "Color: $color\n";}
+
+// FOREACH ASOCIATIVO
+$persona=["nombre"=>"Ana","edad"=>25,"ciudad"=>"Lima"];
+foreach($persona as $clave=>$valor){echo "$clave: $valor\n";}
+
+// FOREACH SIMPLE
+$numeros=[1,2,3,4];
+foreach($numeros as $num){echo "Num: $num\n";}
+
+// FOREACH CON BREAK
+foreach($colores as $color){if($color=="verde")break;echo "Color: $color\n";}
+
+// FOREACH CON CONTINUE
+foreach($colores as $color){if($color=="verde")continue;echo "Color: $color\n";}
+
+echo "Completado sin errores";
 ?>'); ?></textarea>
                         <div class="p-3">
                             <button onclick="ejecutar()" class="btn btn-success btn-exec">Ejecutar Código</button>
