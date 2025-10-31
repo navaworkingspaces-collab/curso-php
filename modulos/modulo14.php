@@ -41,21 +41,47 @@ if ($_POST['action'] ?? '' === 'agregar') {
     }
 }
 
-// === EJECUCIÓN DEL CÓDIGO ===
-if (isset($_POST['code'])) {
-    $code = $_POST['code'];
-    $forbidden = ['include', 'require', 'file', 'system', 'exec', 'eval', 'session_destroy', 'unset'];
-    foreach ($forbidden as $f) {
-        if (stripos($code, $f) !== false) {
-            echo "<pre class='text-danger'>Código prohibido: $f</pre>";
-            exit;
+// === FUNCIÓN SEGURA DE EJECUCIÓN ===
+function ejecutarCodigoSeguro($code) {
+    $code = trim($code);
+    
+    if (strlen($code) > 2000) {
+        return "Error: Código muy largo (máximo 2000 caracteres)";
+    }
+    
+    $dangerous_functions = [
+        'system', 'exec', 'shell_exec', 'passthru', 'popen', 'proc_open',
+        'eval', 'include', 'require', 'include_once', 'require_once',
+        'file_get_contents', 'file_put_contents', 'fopen', 'fwrite',
+        'mkdir', 'rmdir', 'unlink', 'copy', 'rename',
+        'session_destroy', 'session_unset', 'unset',
+        'header', 'setcookie', 'mail', 'mysql_connect', 'mysqli_connect', 'new PDO'
+    ];
+    
+    foreach ($dangerous_functions as $func) {
+        if (stripos($code, $func . '(') !== false) {
+            return "Error: Función no permitida: " . htmlspecialchars($func);
         }
     }
-
+    
+    // Configurar límites
+    ini_set('memory_limit', '32M');
+    ini_set('max_execution_time', 5);
+    
     ob_start();
-    eval('?>' . $code);
-    $output = ob_get_clean();
-    echo $output;
+    try {
+        $output = eval('?>' . $code);
+        $buffer = ob_get_clean();
+        return !empty($buffer) ? $buffer : $output;
+    } catch (Throwable $e) {
+        ob_end_clean();
+        return "Error: " . $e->getMessage();
+    }
+}
+
+// === EJECUCIÓN DEL CÓDIGO ===
+if (isset($_POST['code'])) {
+    echo ejecutarCodigoSeguro($_POST['code']);
     exit;
 }
 
@@ -108,7 +134,7 @@ try {
     $productos = [];
 }
 
-$codigo_inicial = "<?php\n// Mostrar productos disponibles\n\$stmt = \$pdo->query(\"SELECT * FROM productos\");\nwhile (\$p = \$stmt->fetch()) {\n    echo \"<option value={\$p['id']}>\" . \$p['nombre'] . \" - $\" . \$p['precio'] . \"</option>\";\n}\n?>";
+$codigo_inicial = "<?php\n// Mostrar productos disponibles (ejemplo estático)\n// En el ejercicio real, usarías: \$pdo->query(\"SELECT * FROM productos\")\n\n\$productos = [\n    ['id' => 1, 'nombre' => 'Laptop', 'precio' => 1200],\n    ['id' => 2, 'nombre' => 'Mouse', 'precio' => 25],\n    ['id' => 3, 'nombre' => 'Teclado', 'precio' => 80]\n];\n\nforeach (\$productos as \$p) {\n    echo \"<option value='\" . \$p['id'] . \"'>\" . \$p['nombre'] . \" - $\" . \$p['precio'] . \"</option>\";\n}\n?>";
 ?>
 
 <!DOCTYPE html>
@@ -219,12 +245,12 @@ $codigo_inicial = "<?php\n// Mostrar productos disponibles\n\$stmt = \$pdo->quer
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/xml/xml.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/javascript/javascript.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/css/css.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/clike/clike.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/php/php.js"></script>
+    <script src="../assets/codemirror/mode/xml/xml.js"></script>
+    <script src="../assets/codemirror/mode/javascript/javascript.js"></script>
+    <script src="../assets/codemirror/mode/css/css.js"></script>
+    <script src="../assets/codemirror/mode/clike/clike.js"></script>
+    <script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="../assets/codemirror/mode/php/php.js"></script>
     <script>
         const editor = CodeMirror.fromTextArea(document.getElementById('code'), {
             mode: 'php',

@@ -8,23 +8,38 @@ $user_id = $_SESSION['user_id'];
 $titulo_modulo = "Módulo 16: Panel Admin – CRUD Productos";
 $instrucciones = "Usa PDO para listar, crear, editar y eliminar productos.";
 
-// === ACCIONES CRUD ===
+// === PRIMERO: CARGAR PRODUCTOS INICIALMENTE ===
+try {
+    $productos = $pdo->query("SELECT * FROM productos ORDER BY id DESC")->fetchAll();
+} catch (Exception $e) {
+    $productos = [];
+}
+
+// === SEGUNDO: PROCESAR ACCIONES CRUD ===
 $mensaje = '';
-if ($_POST['action'] ?? '' === 'crear') {
+
+// CREAR PRODUCTO
+if (($_POST['action'] ?? '') === 'crear') {
     $nombre = trim($_POST['nombre'] ?? '');
     $precio = floatval($_POST['precio'] ?? 0);
     $stock = intval($_POST['stock'] ?? 0);
 
     if ($nombre && $precio > 0 && $stock >= 0) {
         $stmt = $pdo->prepare("INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)");
-        $stmt->execute([$nombre, $precio, $stock]);
-        $mensaje = "<div class='alert alert-success'>Producto creado</div>";
+        if ($stmt->execute([$nombre, $precio, $stock])) {
+            $mensaje = "<div class='alert alert-success'>Producto creado exitosamente</div>";
+            // RECARGAR PRODUCTOS DESPUÉS DE CREAR
+            $productos = $pdo->query("SELECT * FROM productos ORDER BY id DESC")->fetchAll();
+        } else {
+            $mensaje = "<div class='alert alert-danger'>Error al crear producto</div>";
+        }
     } else {
-        $mensaje = "<div class='alert alert-danger'>Datos inválidos</div>";
+        $mensaje = "<div class='alert alert-danger'>Datos inválidos para crear producto</div>";
     }
 }
 
-if ($_POST['action'] ?? '' === 'editar') {
+// EDITAR PRODUCTO
+if (($_POST['action'] ?? '') === 'editar') {
     $id = intval($_POST['id'] ?? 0);
     $nombre = trim($_POST['nombre'] ?? '');
     $precio = floatval($_POST['precio'] ?? 0);
@@ -32,23 +47,40 @@ if ($_POST['action'] ?? '' === 'editar') {
 
     if ($id && $nombre && $precio > 0 && $stock >= 0) {
         $stmt = $pdo->prepare("UPDATE productos SET nombre=?, precio=?, stock=? WHERE id=?");
-        $stmt->execute([$nombre, $precio, $stock, $id]);
-        $mensaje = "<div class='alert alert-success'>Producto actualizado</div>";
+        if ($stmt->execute([$nombre, $precio, $stock, $id])) {
+            $mensaje = "<div class='alert alert-success'>Producto actualizado exitosamente</div>";
+            // RECARGAR PRODUCTOS DESPUÉS DE EDITAR
+            $productos = $pdo->query("SELECT * FROM productos ORDER BY id DESC")->fetchAll();
+        } else {
+            $mensaje = "<div class='alert alert-danger'>Error al actualizar producto</div>";
+        }
     } else {
-        $mensaje = "<div class='alert alert-danger'>Datos inválidos para editar</div>";
+        $mensaje = "<div class='alert alert-danger'>Datos inválidos para editar producto</div>";
     }
 }
 
-if ($_POST['action'] ?? '' === 'eliminar') {
+// ELIMINAR PRODUCTO - CORREGIDO
+if (($_POST['action'] ?? '') === 'eliminar') {
     $id = intval($_POST['id'] ?? 0);
     if ($id) {
-        $stmt = $pdo->prepare("DELETE FROM productos WHERE id=?");
-        $stmt->execute([$id]);
-        $mensaje = "<div class='alert alert-success'>Producto eliminado</div>";
+        try {
+            $stmt = $pdo->prepare("DELETE FROM productos WHERE id = ?");
+            if ($stmt->execute([$id])) {
+                $mensaje = "<div class='alert alert-success'>Producto eliminado exitosamente</div>";
+                // RECARGAR PRODUCTOS DESPUÉS DE ELIMINAR
+                $productos = $pdo->query("SELECT * FROM productos ORDER BY id DESC")->fetchAll();
+            } else {
+                $mensaje = "<div class='alert alert-danger'>No se pudo eliminar el producto</div>";
+            }
+        } catch (Exception $e) {
+            $mensaje = "<div class='alert alert-danger'>Error al eliminar producto: " . htmlspecialchars($e->getMessage()) . "</div>";
+        }
+    } else {
+        $mensaje = "<div class='alert alert-danger'>ID de producto inválido para eliminar</div>";
     }
 }
 
-// === EJECUCIÓN DEL CÓDIGO ===
+// === TERCERO: EJECUCIÓN DEL CÓDIGO EDITOR ===
 if (isset($_POST['code'])) {
     $code = $_POST['code'];
     $forbidden = ['include', 'require', 'file', 'system', 'exec', 'eval', 'session_destroy', 'unset'];
@@ -66,13 +98,12 @@ if (isset($_POST['code'])) {
     exit;
 }
 
-// Progreso
+// === CUARTO: PROGRESO Y PREGUNTAS ===
 $completado = false;
 $stmt = $pdo->prepare("SELECT completado FROM progreso WHERE user_id = ? AND modulo = ?");
 $stmt->execute([$user_id, $modulo]);
 if ($row = $stmt->fetch()) $completado = $row['completado'];
 
-// Preguntas
 $preguntas = [
     ["¿Qué método usas para INSERT?", '["execute()", "query()", "fetch()", "bind()"]', 0],
     ["¿Cómo evitas SQL Injection?", '["prepare() + execute()", "addslashes()", "mysql_escape()", "filter_var()"]', 0],
@@ -82,7 +113,7 @@ $preguntas = [
 ];
 
 // Procesar respuestas
-if ($_POST['action'] ?? '' === 'verificar') {
+if (($_POST['action'] ?? '') === 'verificar') {
     $respuestas = $_POST['respuesta'] ?? [];
     $correctas = 0;
     foreach ($preguntas as $i => $p) {
@@ -99,7 +130,6 @@ if ($_POST['action'] ?? '' === 'verificar') {
     }
 }
 
-$productos = $pdo->query("SELECT * FROM productos ORDER BY id DESC")->fetchAll();
 $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * FROM productos\");\nwhile (\$row = \$stmt->fetch()) {\n    echo \"<tr><td>{\$row['id']}</td><td>{\$row['nombre']}</td><td>\$\" . number_format(\$row['precio'], 2) . \"</td><td>{\$row['stock']}</td></tr>\";\n}\n\n// Crear producto\necho \"<div class='alert alert-info'>Usa el formulario para CRUD</div>\";\n?>";
 ?>
 
@@ -122,6 +152,14 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
             <h2>Módulo 16: Carrito III – Finalizar Pedido</h2>
             <a href="../dashboard.php" class="btn btn-outline-primary">Volver al Dashboard</a>
         </div>
+        
+        <!-- MOSTRAR MENSAJES DE ACCIÓN -->
+        <?php if ($mensaje): ?>
+            <div class="alert-container">
+                <?= $mensaje ?>
+            </div>
+        <?php endif; ?>
+
         <div class="row">
             <div class="col-md-8">
                 <div class="card">
@@ -155,30 +193,34 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
                             <div class="card-header">Lista de Productos</div>
                             <div class="card-body p-0">
                                 <table class="table table-striped mb-0">
-                                    <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th></th></tr></thead>
+                                    <thead><tr><th>ID</th><th>Nombre</th><th>Precio</th><th>Stock</th><th>Acciones</th></tr></thead>
                                     <tbody>
-                                        <?php foreach ($productos as $p): ?>
-                                        <tr>
-                                            <td><?= $p['id'] ?></td>
-                                            <td><?= htmlspecialchars($p['nombre']) ?></td>
-                                            <td>$<?= number_format($p['precio'], 2) ?></td>
-                                            <td><?= $p['stock'] ?></td>
-                                            <td>
-                                                <button class="btn btn-sm btn-warning edit-btn" 
-                                                        data-id="<?= $p['id'] ?>"
-                                                        data-nombre="<?= htmlspecialchars($p['nombre']) ?>"
-                                                        data-precio="<?= $p['precio'] ?>"
-                                                        data-stock="<?= $p['stock'] ?>">
-                                                    Edit
-                                                </button>
-                                                <form method="post" class="d-inline">
-                                                    <input type="hidden" name="action" value="eliminar">
-                                                    <input type="hidden" name="id" value="<?= $p['id'] ?>">
-                                                    <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar este producto?')">Del</button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
+                                        <?php if (empty($productos)): ?>
+                                            <tr><td colspan="5" class="text-center text-muted">No hay productos</td></tr>
+                                        <?php else: ?>
+                                            <?php foreach ($productos as $p): ?>
+                                            <tr>
+                                                <td><?= $p['id'] ?></td>
+                                                <td><?= htmlspecialchars($p['nombre']) ?></td>
+                                                <td>$<?= number_format($p['precio'], 2) ?></td>
+                                                <td><?= $p['stock'] ?></td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-warning edit-btn" 
+                                                            data-id="<?= $p['id'] ?>"
+                                                            data-nombre="<?= htmlspecialchars($p['nombre']) ?>"
+                                                            data-precio="<?= $p['precio'] ?>"
+                                                            data-stock="<?= $p['stock'] ?>">
+                                                        Edit
+                                                    </button>
+                                                    <form method="post" class="d-inline">
+                                                        <input type="hidden" name="action" value="eliminar">
+                                                        <input type="hidden" name="id" value="<?= $p['id'] ?>">
+                                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('¿Eliminar este producto?')">Del</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
@@ -186,6 +228,8 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
                     </div>
                 </div>
             </div>
+
+            <!-- ... el resto del código permanece igual ... -->
 
             <div class="col-md-4">
                 <div class="card">
@@ -253,12 +297,12 @@ $codigo_inicial = "<?php\n// Listar productos\n\$stmt = \$pdo->query(\"SELECT * 
     <!-- SCRIPTS ORDENADOS PARA EVITAR CONFLICTOS -->
     <!-- Primero CodeMirror y sus dependencias -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/xml/xml.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/javascript/javascript.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/css/css.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/clike/clike.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/php/php.js"></script>
+    <script src="../assets/codemirror/mode/xml/xml.js"></script>
+    <script src="../assets/codemirror/mode/javascript/javascript.js"></script>
+    <script src="../assets/codemirror/mode/css/css.js"></script>
+    <script src="../assets/codemirror/mode/clike/clike.js"></script>
+    <script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="../assets/codemirror/mode/php/php.js"></script>
     
     <!-- Luego Bootstrap -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

@@ -22,7 +22,7 @@ if (isset($_POST['code'])) {
 $modulo = 18;
 $user_id = $_SESSION['user_id'];
 $titulo_modulo = "Módulo 18: CI4 – Controlador + Vista";
-$instrucciones = "Usa PDO en un controlador para mostrar productos.";
+$instrucciones = "Simula un controlador CI4 para mostrar productos usando estructura MVC (Model-View-Controller).";
 
 // Progreso
 $completado = false;
@@ -32,11 +32,11 @@ if ($row = $stmt->fetch()) $completado = $row['completado'];
 
 // PREGUNTAS CORREGIDAS (JSON VÁLIDO)
 $preguntas = [
-    ["¿Dónde va el controlador?", '["app/Controllers","public","views","models"]', 0],
+    ["¿Clase padre Controller?", '["\\\\CodeIgniter\\\\Controller","BaseController","Controller","App\\\\Controller"]', 0],
     ["¿Método por defecto?", '["index()","show()","list()","get()"]', 0],
-    ["¿Cómo conectas a BD?", '["\\\\Config\\\\Database::connect()","$pdo","new PDO()","DB::connect()"]', 0],
-    ["¿Qué muestra echo?", '["Salida en navegador","Guarda en BD","Redirige","Nada"]', 0],
-    ["¿Se puede usar PDO?", '["Sí","No","Solo con Model","Solo en Vista"]', 0]
+    ["¿Método BD CI4?", '["Database::connect()","getConnection()","db_connect()","connectDB()"]', 0],
+    ["¿Dónde van las vistas?", '["app/Views","app/Controllers","app/Models","public"]', 0],
+    ["¿Orden CI4 MVC?", '["Controller→Model→View","Model→View→Controller","View→Controller→Model","View→Model→Controller"]', 0]
 ];
 
 $mensaje = '';
@@ -58,7 +58,7 @@ if ($_POST['action'] ?? '' === 'verificar') {
     }
 }
 
-$codigo_inicial = "<?php\n// Mostrar productos\n\$stmt = \$pdo->query(\"SELECT * FROM productos\");\nwhile (\$p = \$stmt->fetch()) {\n    echo \"<li>\" . \$p['nombre'] . \" - $\" . number_format(\$p['precio'], 2) . \"</li>\";\n}\n?>";
+$codigo_inicial = "<?php\n// Controlador CI4 - Simulado para aprender MVC\nclass Productos {\n    private \$db;\n    \n    // Método constructor simula CI4\n    public function __construct() {\n        global \$pdo;\n        \$this->db = \$pdo;\n    }\n    \n    public function index() {\n        // Simula CI4 Database Builder\n        \$stmt = \$this->db->query(\"SELECT * FROM productos ORDER BY id\");\n        \$productos = \$stmt->fetchAll();\n        \n        echo \"<h3>Lista de Productos (Estructura CI4)</h3>\";\n        echo \"<strong>Controlador:</strong> Productos->index()<br><br>\";\n        \n        foreach (\$productos as \$producto) {\n            echo \"<li>\" . \$producto['nombre'] . \" - $\" . number_format(\$producto['precio'], 2) . \"</li>\";\n        }\n        \n        echo \"<br><small><em>Concepto MVC: Controller→Model→View</em></small>\";\n    }\n}\n\n// Ejecutar como CI4\n\$controller = new Productos();\n\$controller->index();\n?>";
 ?>
 
 <!DOCTYPE html>
@@ -129,12 +129,12 @@ $codigo_inicial = "<?php\n// Mostrar productos\n\$stmt = \$pdo->query(\"SELECT *
 <!-- SCRIPTS ORDENADOS PARA EVITAR CONFLICTOS -->
 <!-- Primero CodeMirror y sus dependencias -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="/curso-php/assets/codemirror/mode/xml/xml.js"></script>
-<script src="/curso-php/assets/codemirror/mode/javascript/javascript.js"></script>
-<script src="/curso-php/assets/codemirror/mode/css/css.js"></script>
-<script src="/curso-php/assets/codemirror/mode/clike/clike.js"></script>
-<script src="/curso-php/assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-<script src="/curso-php/assets/codemirror/mode/php/php.js"></script>
+<script src="../assets/codemirror/mode/xml/xml.js"></script>
+<script src="../assets/codemirror/mode/javascript/javascript.js"></script>
+<script src="../assets/codemirror/mode/css/css.js"></script>
+<script src="../assets/codemirror/mode/clike/clike.js"></script>
+<script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+<script src="../assets/codemirror/mode/php/php.js"></script>
 
 <!-- Luego Bootstrap -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

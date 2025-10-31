@@ -7,71 +7,77 @@ if (!isset($_SESSION['carrito'])) {
     $_SESSION['carrito'] = [];
 }
 
+// === FUNCIÓN SEGURA DE EJECUCIÓN ===
+function ejecutarCodigoSeguro($code, $pdo, $session, $user_id) {
+    $code = trim($code);
+    
+    if (strlen($code) > 2000) {
+        return "Error: Código muy largo (máximo 2000 caracteres)";
+    }
+    
+    $dangerous_functions = [
+        'system', 'exec', 'shell_exec', 'passthru', 'popen', 'proc_open',
+        'eval', 'include', 'require', 'include_once', 'require_once',
+        'file_get_contents', 'file_put_contents', 'fopen', 'fwrite',
+        'mkdir', 'rmdir', 'unlink', 'copy', 'rename',
+        'session_destroy', 'session_unset', 'unset',
+        'header', 'setcookie', 'mail', 'mysql_connect', 'mysqli_connect', 'new PDO'
+    ];
+    
+    foreach ($dangerous_functions as $func) {
+        if (stripos($code, $func . '(') !== false) {
+            return "Error: Función no permitida: " . htmlspecialchars($func);
+        }
+    }
+    
+    // Configurar límites
+    ini_set('memory_limit', '32M');
+    ini_set('max_execution_time', 5);
+    
+    ob_start();
+    try {
+        $output = eval('?>' . $code);
+        $buffer = ob_get_clean();
+        $result = !empty($buffer) ? $buffer : $output;
+        
+        // === GUARDAR PEDIDO EN BD SI HAY "pago" ===
+        if (stripos($result, 'pago') !== false || stripos($code, 'echo') !== false) {
+            if (!empty($session['carrito'])) {
+                try {
+                    $pdo->beginTransaction();
+                    
+                    // Crear pedido
+                    $stmt = $pdo->prepare("INSERT INTO pedidos (user_id, estado) VALUES (?, 'Pendiente')");
+                    $stmt->execute([$user_id]);
+                    $pedido_id = $pdo->lastInsertId();
+                    
+                    // Guardar items
+                    $stmt_item = $pdo->prepare("INSERT INTO pedido_items (pedido_id, producto_id, cantidad) VALUES (?, ?, ?)");
+                    foreach ($session['carrito'] as $item) {
+                        $stmt_item->execute([$pedido_id, $item['id'], $item['cantidad']]);
+                    }
+                    
+                    $pdo->commit();
+                    $result .= "\n\n<div class='alert alert-success'>¡Pago simulado exitoso! Pedido #$pedido_id guardado.</div>";
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    $result .= "\n\n<div class='alert alert-danger'>Error al guardar pedido.</div>";
+                }
+            } else {
+                $result .= "\n\n<div class='alert alert-warning'>Carrito vacío. Agrega productos primero.</div>";
+            }
+        }
+        
+        return $result;
+    } catch (Throwable $e) {
+        ob_end_clean();
+        return "Error: " . $e->getMessage();
+    }
+}
+
 // === EJECUCIÓN ===
 if (isset($_POST['code'])) {
-    $code = $_POST['code'];
-
-    $forbidden = ['include', 'require', 'file', 'system', 'exec', 'eval', 'session_destroy', 'unset'];
-    foreach ($forbidden as $f) {
-        if (stripos($code, $f) !== false) {
-            echo "<pre class='text-danger'>Código prohibido: $f</pre>";
-            exit;
-        }
-    }
-
-    ob_start();
-    eval('?>' . $code);
-    $output = ob_get_clean();
-
-    // === GUARDAR PEDIDO EN BD SI HAY "pago" ===
-    if (stripos($output, 'pago') !== false || stripos($code, 'echo') !== false) {
-        if (!empty($_SESSION['carrito'])) {
-            try {
-                $pdo->beginTransaction();
-
-                // Crear pedido
-                $stmt = $pdo->prepare("INSERT INTO pedidos (user_id, estado) VALUES (?, 'Pendiente')");
-                $stmt->execute([$_SESSION['user_id']]);
-                $pedido_id = $pdo->lastInsertId();
-
-                // Guardar items
-                $stmt_item = $pdo->prepare("INSERT INTO pedido_items (pedido_id, producto_id, cantidad) VALUES (?, ?, ?)");
-                foreach ($_SESSION['carrito'] as $item) {
-                    $stmt_item->execute([$pedido_id, $item['id'], $item['cantidad']]);
-                }
-
-                $pdo->commit();
-                $_SESSION['carrito'] = [];
-                echo "<div class='alert alert-success'>¡Pago simulado exitoso! Pedido #$pedido_id guardado.</div>";
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                echo "<div class='alert alert-danger'>Error al guardar pedido.</div>";
-            }
-        } else {
-            echo "<div class='alert alert-warning'>Carrito vacío.</div>";
-        }
-    }
-
-    // Mostrar carrito
-    if (!empty($_SESSION['carrito'])) {
-        $total = 0;
-        echo "<div class='card mt-3'><div class='card-body'>";
-        echo "<h5>Resumen de compra:</h5><ul class='list-group mb-3'>";
-        foreach ($_SESSION['carrito'] as $item) {
-            $subtotal = $item['precio'] * $item['cantidad'];
-            $total += $subtotal;
-            echo "<li class='list-group-item d-flex justify-content-between'>
-                <span>{$item['nombre']} (x{$item['cantidad']})</span>
-                <span>\$" . number_format($subtotal, 2) . "</span>
-            </li>";
-        }
-        echo "<li class='list-group-item active text-white'>
-            <strong>Total: \$" . number_format($total, 2) . "</strong>
-        </li></ul>";
-        echo "</div></div>";
-    }
-
-    echo $output;
+    echo ejecutarCodigoSeguro($_POST['code'], $pdo, $_SESSION, $_SESSION['user_id']);
     exit;
 }
 
@@ -184,12 +190,12 @@ $codigo_inicial = "<?php\n// Muestra el resumen del carrito\n\$total = 0;\nforea
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/xml/xml.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/javascript/javascript.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/css/css.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/clike/clike.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/php/php.js"></script>
+    <script src="../assets/codemirror/mode/xml/xml.js"></script>
+    <script src="../assets/codemirror/mode/javascript/javascript.js"></script>
+    <script src="../assets/codemirror/mode/css/css.js"></script>
+    <script src="../assets/codemirror/mode/clike/clike.js"></script>
+    <script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="../assets/codemirror/mode/php/php.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const editor = CodeMirror.fromTextArea(document.getElementById('code'), {

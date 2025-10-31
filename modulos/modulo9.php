@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$modulo = 1;
+$modulo = 9;
 $user_id = $_SESSION['user_id'];
 $mensaje = '';
 
@@ -28,15 +28,9 @@ if ($_POST) {
     }
 
     if ($correctas >= 3) {
-        // Guardar progreso
-        $stmt = $pdo->prepare("SELECT progreso FROM usuarios WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $progreso = json_decode($stmt->fetchColumn() ?? '[]', true);
-        if (!in_array($modulo, $progreso)) {
-            $progreso[] = $modulo;
-            $pdo->prepare("UPDATE usuarios SET progreso = ? WHERE id = ?")
-                ->execute([json_encode($progreso), $user_id]);
-        }
+        // Guardar progreso en tabla progreso (sistema unificado)
+        $stmt = $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?");
+        $stmt->execute([$user_id, $modulo, $correctas * 20, $correctas * 20]);
         $mensaje = "<div class='alert alert-success'>¡Módulo completado! $correctas/5 correctas ✓</div>";
     } else {
         $mensaje = "<div class='alert alert-danger'>Necesitas al menos 3 correctas. Tienes $correctas/5</div>";
@@ -112,15 +106,15 @@ echo "Hola Mundo";
     </div>
 
     <!-- CODEMIRROR CON TODAS LAS DEPENDENCIAS (FIX PARA htmlMode.indent) -->
-    <script src="/curso-php/assets/codemirror/lib/codemirror.js"></script>
+    <script src="../assets/codemirror/lib/codemirror.js"></script>
 
     <!-- DEPENDENCIAS OBLIGATORIAS PARA PHP + HTML -->
-    <script src="/curso-php/assets/codemirror/mode/xml/xml.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/javascript/javascript.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/css/css.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/clike/clike.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/php/php.js"></script>
+    <script src="../assets/codemirror/mode/xml/xml.js"></script>
+    <script src="../assets/codemirror/mode/javascript/javascript.js"></script>
+    <script src="../assets/codemirror/mode/css/css.js"></script>
+    <script src="../assets/codemirror/mode/clike/clike.js"></script>
+    <script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="../assets/codemirror/mode/php/php.js"></script>
 
     <script>
         const editor = CodeMirror.fromTextArea(document.getElementById("code"), {
@@ -134,7 +128,7 @@ echo "Hola Mundo";
 
         function ejecutar() {
             const code = editor.getValue();
-            fetch('/curso-php/modulos/ejecutar.php', {
+            fetch('ejecutar.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: 'code=' + encodeURIComponent(code)

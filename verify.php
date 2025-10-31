@@ -1,7 +1,7 @@
 <?php
 require 'includes/db.php';
 $hash = $_GET['hash'] ?? '';
-$stmt = $pdo->prepare("SELECT u.nombre, c.fecha FROM certificados c JOIN usuarios u ON c.usuario_id = u.id WHERE c.hash = ?");
+$stmt = $pdo->prepare("SELECT u.nombre, c.fecha FROM certificados c JOIN usuarios u ON c.user_id = u.id WHERE c.hash = ?");
 $stmt->execute([$hash]);
 $cert = $stmt->fetch();
 ?>

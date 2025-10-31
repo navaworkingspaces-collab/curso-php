@@ -143,12 +143,12 @@ $codigo_inicial = "<?php\n\n\$_SESSION['usuario'] = 'Ana';\n\$_SESSION['edad'] =
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/xml/xml.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/javascript/javascript.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/css/css.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/clike/clike.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-    <script src="/curso-php/assets/codemirror/mode/php/php.js"></script>
+    <script src="../assets/codemirror/mode/xml/xml.js"></script>
+    <script src="../assets/codemirror/mode/javascript/javascript.js"></script>
+    <script src="../assets/codemirror/mode/css/css.js"></script>
+    <script src="../assets/codemirror/mode/clike/clike.js"></script>
+    <script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+    <script src="../assets/codemirror/mode/php/php.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const editor = CodeMirror.fromTextArea(document.getElementById('code'), {

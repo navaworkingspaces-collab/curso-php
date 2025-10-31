@@ -99,9 +99,9 @@ if ($completados >= $total_modulos) {
                             15 => "Carrito de Compra (II)",
                             16 => "Admin Tienda (I)",
                             17 => "Admin Tienda (II)",
-                            18 => "CodeIgniter: Instalación",
-                            19 => "CodeIgniter: MVC",
-                            20 => "CodeIgniter: Modelos y BD",
+                            18 => "CodeIgniter: Controlador + Vista",
+                            19 => "CodeIgniter: Modelos + CRUD",
+                            20 => "CodeIgniter: Rutas + PDF",
                             default => "Módulo $i (Próximamente)"
                         };
                         

@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$modulo = 1;
+$modulo = 3;
 $user_id = $_SESSION['user_id'];
 $mensaje = '';
 
@@ -28,15 +28,9 @@ if ($_POST) {
     }
 
     if ($correctas >= 3) {
-        // Guardar progreso
-        $stmt = $pdo->prepare("SELECT progreso FROM usuarios WHERE id = ?");
-        $stmt->execute([$user_id]);
-        $progreso = json_decode($stmt->fetchColumn() ?? '[]', true);
-        if (!in_array($modulo, $progreso)) {
-            $progreso[] = $modulo;
-            $pdo->prepare("UPDATE usuarios SET progreso = ? WHERE id = ?")
-                ->execute([json_encode($progreso), $user_id]);
-        }
+        // Guardar progreso en tabla progreso (sistema unificado)
+        $stmt = $pdo->prepare("INSERT INTO progreso (user_id, modulo, completado, puntaje) VALUES (?, ?, 1, ?) ON DUPLICATE KEY UPDATE completado = 1, puntaje = ?");
+        $stmt->execute([$user_id, $modulo, $correctas * 20, $correctas * 20]);
         $mensaje = "<div class='alert alert-success'>¡Módulo completado! $correctas/5 correctas ✓</div>";
     } else {
         $mensaje = "<div class='alert alert-danger'>Necesitas al menos 3 correctas. Tienes $correctas/5</div>";

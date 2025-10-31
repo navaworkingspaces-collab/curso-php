@@ -1,18 +1,18 @@
 <?php
-/* Smarty version 5.6.0, created on 2025-10-31 06:40:39
+/* Smarty version 5.6.0, created on 2025-10-31 17:35:33
   from 'file:modulo13_user.tpl' */
 
 /* @var \Smarty\Template $_smarty_tpl */
 if ($_smarty_tpl->getCompiled()->isFresh($_smarty_tpl, array (
   'version' => '5.6.0',
-  'unifunc' => 'content_69044bd7b21d74_14277108',
+  'unifunc' => 'content_6904e555132539_59495191',
   'has_nocache_code' => false,
   'file_dependency' => 
   array (
     '8a82f432e0a83400d88a8975e3acd2e4c290214d' => 
     array (
       0 => 'modulo13_user.tpl',
-      1 => 1761889239,
+      1 => 1761928533,
       2 => 'file',
     ),
   ),
@@ -20,7 +20,7 @@ if ($_smarty_tpl->getCompiled()->isFresh($_smarty_tpl, array (
   array (
   ),
 ))) {
-function content_69044bd7b21d74_14277108 (\Smarty\Template $_smarty_tpl) {
+function content_6904e555132539_59495191 (\Smarty\Template $_smarty_tpl) {
 $_smarty_current_dir = 'C:\\xampp\\htdocs\\curso-php\\templates';
 $_smarty_tpl->assign('saludo', "Hola", false, NULL);?>
 <h1><?php echo $_smarty_tpl->getValue('saludo');?>

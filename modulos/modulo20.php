@@ -119,12 +119,12 @@ $codigo_inicial = "<?php\n// Simulación de generación de factura\n\n// Obtener
 <!-- SCRIPTS ORDENADOS PARA EVITAR CONFLICTOS -->
 <!-- Primero CodeMirror y sus dependencias -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-<script src="/curso-php/assets/codemirror/mode/xml/xml.js"></script>
-<script src="/curso-php/assets/codemirror/mode/javascript/javascript.js"></script>
-<script src="/curso-php/assets/codemirror/mode/css/css.js"></script>
-<script src="/curso-php/assets/codemirror/mode/clike/clike.js"></script>
-<script src="/curso-php/assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
-<script src="/curso-php/assets/codemirror/mode/php/php.js"></script>
+<script src="../assets/codemirror/mode/xml/xml.js"></script>
+<script src="../assets/codemirror/mode/javascript/javascript.js"></script>
+<script src="../assets/codemirror/mode/css/css.js"></script>
+<script src="../assets/codemirror/mode/clike/clike.js"></script>
+<script src="../assets/codemirror/mode/htmlmixed/htmlmixed.js"></script>
+<script src="../assets/codemirror/mode/php/php.js"></script>
 
 <!-- Luego Bootstrap -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

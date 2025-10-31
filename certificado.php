@@ -4,16 +4,19 @@ require 'includes/db.php';
 if (!isset($_SESSION['user_id'])) header("Location: login.php");
 
 $user_id = $_SESSION['user_id'];
-$stmt = $pdo->prepare("SELECT progreso FROM usuarios WHERE id = ?");
-$stmt->execute([$user_id]);
-$progreso = json_decode($stmt->fetchColumn(), true);
 
-if (count($progreso) < 10) {
+// Verificar progreso desde tabla progreso (sistema unificado)
+$stmt = $pdo->prepare("SELECT COUNT(*) FROM progreso WHERE user_id = ? AND completado = 1");
+$stmt->execute([$user_id]);
+$modulos_completados = $stmt->fetchColumn();
+
+// Requiere 20 módulos completados para certificado
+if ($modulos_completados < 20) {
     header("Location: dashboard.php");
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT hash, fecha FROM certificados WHERE usuario_id = ?");
+$stmt = $pdo->prepare("SELECT hash, fecha FROM certificados WHERE user_id = ?");
 $stmt->execute([$user_id]);
 $cert = $stmt->fetch();
 ?>
